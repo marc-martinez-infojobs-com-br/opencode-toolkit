@@ -1,13 +1,13 @@
-# OpenCode Suite — Plugins & Skills
+# opencode-toolkit — Plugins & Skills Suite
 
-Repositorio centralizado de **Plugins** y **Skills** para **OpenCode V2**, diseñado para estandarizar y potenciar el flujo de trabajo del equipo (compatible con **macOS**, **Linux** y **Windows 11**).
+Repositorio centralizado (`opencode-toolkit`) de **Plugins** y **Skills** para **OpenCode V2**, diseñado para estandarizar y potenciar el flujo de trabajo del equipo (compatible con **macOS**, **Linux** y **Windows 11**).
 
 ---
 
 ## 📁 Estructura del repositorio
 
 ```text
-OpenCode/
+opencode-toolkit/
 ├── plugins/
 │   └── opencode-plan-sidebar/    # Plugin TUI + Server para visualizar planes en el Sidebar
 └── skills/
@@ -51,10 +51,10 @@ Consulta dinámicamente en tiempo real los modelos de código y agentes configur
 
 ### Opción 1: Instalar un plugin directamente desde GitHub
 
-OpenCode V2 permite instalar plugins alojados en subcarpetas de un repositorio Git mediante el selector `::path:`:
+OpenCode V2 permite instalar plugins alojados en subcarpetas de `opencode-toolkit` mediante el selector `::path:`:
 
 ```bash
-opencode plugin add 'github:<organizacion>/<repositorio>#main::path:plugins/opencode-plan-sidebar'
+opencode plugin add 'github:<organizacion>/opencode-toolkit#main::path:plugins/opencode-plan-sidebar'
 ```
 
 O añadiéndolo en `~/.config/opencode/opencode.jsonc`:
@@ -63,25 +63,25 @@ O añadiéndolo en `~/.config/opencode/opencode.jsonc`:
 {
   "$schema": "https://opencode.ai/config.json",
   "plugins": [
-    "github:<organizacion>/<repositorio>#main::path:plugins/opencode-plan-sidebar"
+    "github:<organizacion>/opencode-toolkit#main::path:plugins/opencode-plan-sidebar"
   ]
 }
 ```
 
 ---
 
-### Opción 2: Clonar el repositorio en local (Plugins + Skills)
+### Opción 2: Clonar `opencode-toolkit` en local (Plugins + Skills)
 
-Si clonas este repositorio en tu máquina (por ejemplo en `~/Code/OpenCode`), puedes referenciar tanto la carpeta de `skills` como los `plugins` o copiarlos a tu carpeta global `~/.config/opencode/`.
+Si clonas este repositorio en tu máquina (por ejemplo `git clone https://github.com/<organizacion>/opencode-toolkit.git`), puedes copiar los plugins y skills a tu carpeta global `~/.config/opencode/`.
 
 #### En macOS / Linux (`~/.config/opencode/`)
 
-- **Para instalar un plugin globalmente:**
+- **Para instalar el plugin `opencode-plan-sidebar`:**
   ```bash
   mkdir -p ~/.config/opencode/plugins
   cp -R ./plugins/opencode-plan-sidebar ~/.config/opencode/plugins/opencode-plan-sidebar
   ```
-- **Para instalar la skill `models-tokens` globalmente:**
+- **Para instalar la skill `models-tokens`:**
   ```bash
   mkdir -p ~/.config/opencode/skills/models-tokens
   cp -R ./skills/models_tokens/* ~/.config/opencode/skills/models-tokens/
