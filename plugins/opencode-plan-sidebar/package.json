@@ -1,0 +1,53 @@
+{
+  "name": "opencode-plan-sidebar",
+  "version": "1.0.0",
+  "description": "OpenCode V2 plugin to visualize plan tasks, checkboxes, active step, and next step in the TUI Sidebar.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./tui": {
+      "types": "./dist/tui.d.ts",
+      "default": "./dist/tui.js"
+    },
+    "./rpc": {
+      "types": "./dist/rpc.d.ts",
+      "default": "./dist/rpc.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@opencode/plugin": "2.0.16",
+    "@opentui/core": "^0.5.10",
+    "@opentui/solid": "^0.5.10",
+    "solid-js": "1.9.12"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": ">=2.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-typescript": "^7.27.1",
+    "@types/node": "^22.0.0",
+    "babel-preset-solid": "1.9.12",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.0"
+  }
+}
