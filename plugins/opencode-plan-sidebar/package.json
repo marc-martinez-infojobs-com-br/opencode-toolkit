@@ -29,7 +29,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "compile": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
