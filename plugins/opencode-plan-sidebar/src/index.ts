@@ -122,6 +122,16 @@ export const PlanSidebarServerPlugin = Plugin.define({
         const planPath = await resolveSessionPlanPath(sessionID)
         if (!planPath) return { plan: null }
         const parsed = loadParsedPlanFromFile(planPath, projectDir)
+        if (!parsed) {
+          sessionPlanPaths.delete(sessionID)
+          stopWatchingSession(sessionID)
+          try {
+            await ctx.storage.remove(storageKeyForSession(sessionID))
+          } catch {
+            // ignore
+          }
+          return { plan: null }
+        }
         return { plan: parsed }
       },
       discover: async ({ directory }) => {

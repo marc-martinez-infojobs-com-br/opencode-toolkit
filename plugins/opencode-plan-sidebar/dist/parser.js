@@ -1,7 +1,7 @@
 import path from "node:path";
 const HEADING_RE = /^(#{1,4})\s+(.+?)\s*$/;
 const CHECKBOX_RE = /^\s*[-*+]\s+\[([ xX~▶>-])\]\s+(.+?)\s*$/;
-const TASK_NUMBER_RE = /^(?:(?:task|fase|phase|etapa|stage|paso)\s*#?(\d+)|(\d+)[.)]\s+)/i;
+const TASK_NUMBER_RE = /^(?:task|tarea|fase|phase|etapa|stage|paso|step)\s*#?(\d+)\b/i;
 const LEDGER_COMPLETE_RE = /^Task\s+(\d+)\s*:\s*complete\b/im;
 function stripMarkdownFormatting(text) {
     return text
@@ -26,17 +26,18 @@ export function isLikelyPlanContent(markdown) {
     if (!markdown || typeof markdown !== "string")
         return false;
     const lines = markdown.split(/\r?\n/);
-    let checkboxCount = 0;
-    let taskHeadingCount = 0;
+    let insideCodeBlock = false;
     for (const line of lines) {
-        if (CHECKBOX_RE.test(line))
-            checkboxCount++;
-        const headingMatch = line.match(HEADING_RE);
-        if (headingMatch && TASK_NUMBER_RE.test(headingMatch[2])) {
-            taskHeadingCount++;
+        if (/^\s*```/.test(line)) {
+            insideCodeBlock = !insideCodeBlock;
+            continue;
         }
+        if (insideCodeBlock)
+            continue;
+        if (CHECKBOX_RE.test(line))
+            return true;
     }
-    return checkboxCount >= 1 || taskHeadingCount >= 2;
+    return false;
 }
 export function parsePlanMarkdown(markdown, filePath, ledgerContent) {
     const lines = markdown.split(/\r?\n/);
@@ -100,15 +101,7 @@ export function parsePlanMarkdown(markdown, filePath, ledgerContent) {
     // "## Seguimiento de Fases y Tasks en Azure DevOps".
     const tasksWithSteps = rawTasks.filter((t) => t.steps.length > 0);
     const numberedTasksWithSteps = tasksWithSteps.filter((t) => t.taskNumber !== undefined);
-    const filteredTasksWithSteps = numberedTasksWithSteps.length > 0 ? numberedTasksWithSteps : tasksWithSteps;
-    const effectiveRawTasks = filteredTasksWithSteps.length > 0
-        ? filteredTasksWithSteps
-        : rawTasks
-            .filter((t) => t.taskNumber !== undefined)
-            .map((t) => ({
-            ...t,
-            steps: [{ text: t.title, checked: false, line: 1 }],
-        }));
+    const effectiveRawTasks = numberedTasksWithSteps.length > 0 ? numberedTasksWithSteps : tasksWithSteps;
     const ledgerCompletedTasks = parseCompletedLedgerTasks(ledgerContent);
     for (const task of effectiveRawTasks) {
         if (task.taskNumber !== undefined && ledgerCompletedTasks.has(task.taskNumber)) {

@@ -187,4 +187,47 @@ describe("ServerPlugin", () => {
 
     if (typeof cleanup === "function") await cleanup()
   })
+
+  it("does NOT auto-bind a specification file without checkboxes and clears stale non-plan paths on get", async () => {
+    const projectDir = makeTempProject()
+    const specsDir = path.join(projectDir, "Docs", "PB68062", "specs")
+    fs.mkdirSync(specsDir, { recursive: true })
+    const specFile = path.join(specsDir, "2026-11-09-fcm-ttl-priority-collapse-key-spec.md")
+    fs.writeFileSync(
+      specFile,
+      `# Especificación de Diseño — Configuración de ttl, priority y collapse_key en Push Android
+## 1. Objetivo y Contexto
+Calibrar parámetros.
+## 2. Alcance
+Incluido.
+## 3. Enfoques Considerados
+Enfoque 1.
+`,
+      "utf8",
+    )
+
+    const { ctx, getRpcHandlers, emittedEvents, toolAfterHooks } =
+      createMockServerContext(projectDir)
+    const cleanup = await ServerPlugin.setup(ctx)
+
+    await toolAfterHooks[0]!({
+      tool: "write",
+      sessionID: "ses_spec",
+      status: "completed",
+      input: { path: "Docs/PB68062/specs/2026-11-09-fcm-ttl-priority-collapse-key-spec.md" },
+      result: { content: "ok" },
+    })
+
+    expect(emittedEvents).toHaveLength(0)
+    const getRes = await getRpcHandlers().get!({ sessionID: "ses_spec" })
+    expect(getRes.plan).toBeNull()
+
+    // Simulate a session that had the spec path stored previously
+    await ctx.storage.set("session-plan/ses_stale_spec", { filePath: specFile })
+    const staleRes = await getRpcHandlers().get!({ sessionID: "ses_stale_spec" })
+    expect(staleRes.plan).toBeNull()
+    expect(ctx.storage.remove).toHaveBeenCalledWith("session-plan/ses_stale_spec")
+
+    if (typeof cleanup === "function") await cleanup()
+  })
 })

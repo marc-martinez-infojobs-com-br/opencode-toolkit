@@ -153,4 +153,34 @@ describe("isLikelyPlanContent", () => {
     expect(isLikelyPlanContent(SAMPLE_SUPERPOWERS_PLAN)).toBe(true)
     expect(isLikelyPlanContent("# Just a README\n\nSome text without tasks or checks.")).toBe(false)
   })
+
+  it("returns false for specification markdown with numbered sections and no checkboxes", () => {
+    const specMarkdown = `# Especificación de Diseño — Configuración de ttl, priority y collapse_key en Push Android
+
+## 1. Objetivo y Contexto
+Calibrar los parámetros de entrega en Firebase Cloud Messaging.
+
+## 2. Alcance
+Modificación de las clases de payload de FCM.
+
+## 3. Enfoques Considerados
+1. Enfoque 1
+2. Enfoque 2
+
+## 4. Reglas de Negocio y Agrupación FCM
+Tabla de reglas.
+
+## 5. Diseño Técnico
+\`\`\`csharp
+// - [ ] checkbox inside code block should not count
+\`\`\`
+`
+    expect(isLikelyPlanContent(specMarkdown)).toBe(false)
+    const parsed = parsePlanMarkdown(
+      specMarkdown,
+      "/Users/mmartinez/Projects/InfoJobs/Docs/PB68062/specs/2026-11-09-fcm-ttl-priority-collapse-key-spec.md",
+    )
+    expect(parsed.totalSteps).toBe(0)
+    expect(parsed.tasks).toHaveLength(0)
+  })
 })
