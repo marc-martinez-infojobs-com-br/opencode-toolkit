@@ -36,18 +36,41 @@ function rpcErrorMessage(error) {
   }
   return String(error);
 }
-export async function runPlanSelectorFlow(context, sessionID, rawArgument) {
-  if (!sessionID) {
-    context.ui.toast.show({
-      title: "Plan Sidebar",
-      message: "Abre primero una sesión para asociar un plan.",
-      variant: "warning"
-    });
-    return;
+async function ensureSessionForPlan(context, existingSessionID, planTitle) {
+  if (existingSessionID) {
+    return {
+      sessionID: existingSessionID,
+      created: false
+    };
   }
+  const location = context.location ?? context.data.location.default();
+  const createdSession = await context.client.session.create({
+    ...(planTitle ? {
+      title: planTitle
+    } : {}),
+    location: {
+      directory: location.directory
+    }
+  }, {
+    signal: AbortSignal.timeout(RPC_TIMEOUT_MS)
+  });
+  return {
+    sessionID: createdSession.id,
+    created: true
+  };
+}
+export async function runPlanSelectorFlow(context, sessionID, rawArgument) {
   const trimmedArg = rawArgument?.trim();
   if (trimmedArg) {
     if (trimmedArg === "clear" || trimmedArg === "off" || trimmedArg === "none") {
+      if (!sessionID) {
+        context.ui.toast.show({
+          title: "Plan Sidebar",
+          message: "No hay una sesión activa con plan para desvincular.",
+          variant: "info"
+        });
+        return;
+      }
       await planRpc(context).clear({
         sessionID
       }, planRpcOptions(context));
@@ -58,23 +81,41 @@ export async function runPlanSelectorFlow(context, sessionID, rawArgument) {
       });
       return;
     }
-    const res = await planRpc(context).select({
-      sessionID,
-      filePath: trimmedArg
-    }, planRpcOptions(context));
-    if (!res.ok) {
+    try {
+      const {
+        sessionID: targetSessionID,
+        created
+      } = await ensureSessionForPlan(context, sessionID);
+      const res = await planRpc(context).select({
+        sessionID: targetSessionID,
+        filePath: trimmedArg
+      }, planRpcOptions(context));
+      if (!res.ok) {
+        context.ui.toast.show({
+          title: "Plan Sidebar",
+          message: res.error ?? `No se pudo cargar el plan: ${trimmedArg}`,
+          variant: "error"
+        });
+        return;
+      }
+      if (created) {
+        context.ui.router.navigate({
+          type: "session",
+          sessionID: targetSessionID
+        });
+      }
       context.ui.toast.show({
         title: "Plan Sidebar",
-        message: res.error ?? `No se pudo cargar el plan: ${trimmedArg}`,
+        message: `Plan cargado: ${res.plan?.title ?? trimmedArg}`,
+        variant: "success"
+      });
+    } catch (error) {
+      context.ui.toast.show({
+        title: "Plan Sidebar",
+        message: rpcErrorMessage(error),
         variant: "error"
       });
-      return;
     }
-    context.ui.toast.show({
-      title: "Plan Sidebar",
-      message: `Plan cargado: ${res.plan?.title ?? trimmedArg}`,
-      variant: "success"
-    });
     return;
   }
   try {
@@ -92,12 +133,12 @@ export async function runPlanSelectorFlow(context, sessionID, rawArgument) {
       value: ACTION_CUSTOM_PATH,
       description: "Especificar ruta relativa o absoluta a un archivo .md",
       category: "Acciones"
-    }, {
+    }, ...(sessionID ? [{
       title: "Quitar plan activo del Sidebar",
       value: ACTION_CLEAR_PLAN,
       description: "Ocultar el progreso del plan en esta sesión",
       category: "Acciones"
-    }];
+    }] : [])];
     const choice = await context.ui.dialog.select({
       title: "Seleccionar Plan para el Sidebar",
       placeholder: "Buscar plan por título o ruta...",
@@ -105,6 +146,7 @@ export async function runPlanSelectorFlow(context, sessionID, rawArgument) {
     });
     if (!choice) return;
     if (choice === ACTION_CLEAR_PLAN) {
+      if (!sessionID) return;
       await planRpc(context).clear({
         sessionID
       }, planRpcOptions(context));
@@ -125,8 +167,13 @@ export async function runPlanSelectorFlow(context, sessionID, rawArgument) {
       if (!manualPath?.trim()) return;
       targetPath = manualPath.trim();
     }
+    const matchedPlan = discovered.plans.find(item => item.filePath === targetPath);
+    const {
+      sessionID: targetSessionID,
+      created
+    } = await ensureSessionForPlan(context, sessionID, matchedPlan?.title);
     const res = await planRpc(context).select({
-      sessionID,
+      sessionID: targetSessionID,
       filePath: targetPath
     }, planRpcOptions(context));
     if (!res.ok) {
@@ -136,6 +183,12 @@ export async function runPlanSelectorFlow(context, sessionID, rawArgument) {
         variant: "error"
       });
       return;
+    }
+    if (created) {
+      context.ui.router.navigate({
+        type: "session",
+        sessionID: targetSessionID
+      });
     }
     context.ui.toast.show({
       title: "Plan Sidebar",

@@ -195,5 +195,75 @@ describe("PlanSidebarTuiPlugin", () => {
       expect.anything(),
     )
   })
+
+  it("creates a new session, binds the plan, and navigates to the session when run from Home (sessionID undefined)", async () => {
+    const selectMock = vi.fn(async ({ filePath }: any) => ({
+      ok: true,
+      plan: parsePlanMarkdown("# Plan A\n- [ ] Step 1", filePath),
+    }))
+    const discoverMock = vi.fn(async () => ({
+      plans: [
+        {
+          filePath: "/repo/docs/plan-a.md",
+          displayPath: "docs/plan-a.md",
+          title: "Plan A",
+          completedSteps: 1,
+          totalSteps: 3,
+          percentage: 33,
+          updatedAt: 1000,
+        },
+      ],
+    }))
+    const clearMock = vi.fn(async () => ({ ok: true }))
+    const createSessionMock = vi.fn(async () => ({ id: "ses_created_from_home" }))
+    const navigateMock = vi.fn()
+    const toastMock = vi.fn()
+    const dialogSelectMock = vi.fn(async () => "/repo/docs/plan-a.md")
+
+    const mockContext = {
+      location: { directory: "/repo" },
+      data: { location: { default: () => ({ directory: "/repo" }) } },
+      client: {
+        rpc: () => ({
+          select: selectMock,
+          discover: discoverMock,
+          clear: clearMock,
+        }),
+        session: {
+          create: createSessionMock,
+        },
+      },
+      ui: {
+        toast: { show: toastMock },
+        dialog: {
+          select: dialogSelectMock,
+          prompt: vi.fn(),
+        },
+        router: {
+          navigate: navigateMock,
+        },
+      },
+    }
+
+    await runPlanSelectorFlow(mockContext as any, undefined, undefined)
+
+    expect(discoverMock).toHaveBeenCalled()
+    expect(dialogSelectMock).toHaveBeenCalled()
+    expect(createSessionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Plan A",
+        location: { directory: "/repo" },
+      }),
+      expect.anything(),
+    )
+    expect(selectMock).toHaveBeenCalledWith(
+      { sessionID: "ses_created_from_home", filePath: "/repo/docs/plan-a.md" },
+      expect.anything(),
+    )
+    expect(navigateMock).toHaveBeenCalledWith({
+      type: "session",
+      sessionID: "ses_created_from_home",
+    })
+  })
 })
 

@@ -150,21 +150,27 @@ describe("ServerPlugin", () => {
     if (typeof cleanup === "function") await cleanup()
   })
 
-  it("isolates plans per sessionID and does NOT auto-bind merely from reading a file", async () => {
+  it("isolates plans per sessionID and auto-binds on read only when the session has no active plan yet", async () => {
     const projectDir = makeTempProject()
     const docsDir = path.join(projectDir, "docs")
     fs.mkdirSync(docsDir, { recursive: true })
     const planFile = path.join(docsDir, "2026-11-05-plan.md")
+    const otherPlanFile = path.join(docsDir, "2026-11-06-other-plan.md")
     fs.writeFileSync(
       planFile,
       `# Isolated Plan\n### Task 1: Core\n- [ ] Step 1: Work\n`,
+      "utf8",
+    )
+    fs.writeFileSync(
+      otherPlanFile,
+      `# Other Plan\n### Task 1: Core\n- [ ] Step 1: Other\n`,
       "utf8",
     )
 
     const { ctx, getRpcHandlers, toolAfterHooks } = createMockServerContext(projectDir)
     const cleanup = await ServerPlugin.setup(ctx)
 
-    // Reading a plan file in ses_read should NOT auto-bind it
+    // Reading a valid plan file in ses_read (which has no active plan) auto-binds it
     await toolAfterHooks[0]!({
       tool: "read",
       sessionID: "ses_read",
@@ -173,16 +179,21 @@ describe("ServerPlugin", () => {
       result: { content: "ok" },
     })
     const readSessionRes = await getRpcHandlers().get!({ sessionID: "ses_read" })
-    expect(readSessionRes.plan).toBeNull()
+    expect(readSessionRes.plan?.title).toBe("Isolated Plan")
 
-    // Selecting or writing in ses_1 binds ONLY to ses_1, leaving ses_2 with null
-    await getRpcHandlers().select!({
-      sessionID: "ses_1",
-      filePath: "docs/2026-11-05-plan.md",
+    // Reading another plan in ses_read does NOT overwrite the already bound plan
+    await toolAfterHooks[0]!({
+      tool: "read",
+      sessionID: "ses_read",
+      status: "completed",
+      input: { path: "docs/2026-11-06-other-plan.md" },
+      result: { content: "ok" },
     })
-    const ses1Res = await getRpcHandlers().get!({ sessionID: "ses_1" })
+    const afterSecondReadRes = await getRpcHandlers().get!({ sessionID: "ses_read" })
+    expect(afterSecondReadRes.plan?.title).toBe("Isolated Plan")
+
+    // Selecting or reading in ses_1/ses_read leaves ses_2 with null
     const ses2Res = await getRpcHandlers().get!({ sessionID: "ses_2" })
-    expect(ses1Res.plan?.title).toBe("Isolated Plan")
     expect(ses2Res.plan).toBeNull()
 
     if (typeof cleanup === "function") await cleanup()

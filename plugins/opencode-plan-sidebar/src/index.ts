@@ -203,9 +203,11 @@ export const PlanSidebarServerPlugin = Plugin.define({
           return
         }
 
+        const isWriteLike =
+          event.tool === "write" || event.tool === "edit" || event.tool === "patch"
+        const isReadOnUnboundSession = event.tool === "read" && !currentPlanPath
         const shouldAutoBind =
-          (event.tool === "write" || event.tool === "edit" || event.tool === "patch") &&
-          isPlanFilePathCandidate(candidate)
+          (isWriteLike || isReadOnUnboundSession) && isPlanFilePathCandidate(candidate)
 
         if (shouldAutoBind || event.tool === "shell" || event.tool === "bash") {
           await bindPlanToSession(sessionID, candidate)
