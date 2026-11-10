@@ -4,14 +4,26 @@ import {
   buildSidebarViewModel,
   computeFullWidthBarSize,
   renderProgressBar,
+  renderProgressBarParts,
 } from "../src/sidebar-format.js"
-import PlanSidebarTuiPlugin, { runPlanSelectorFlow } from "../src/tui.js"
+import PlanSidebarTuiPlugin, {
+  percentageColor,
+  runPlanSelectorFlow,
+  stepColor,
+  taskColor,
+} from "../src/tui.js"
 
 describe("sidebar-format", () => {
   it("renders a proportional ASCII progress bar", () => {
     expect(renderProgressBar(0, 10)).toBe("░░░░░░░░░░")
     expect(renderProgressBar(50, 10)).toBe("█████░░░░░")
     expect(renderProgressBar(100, 10)).toBe("██████████")
+  })
+
+  it("splits the progress bar into filled and empty segments", () => {
+    expect(renderProgressBarParts(0, 10)).toEqual({ filled: "", empty: "░░░░░░░░░░" })
+    expect(renderProgressBarParts(50, 10)).toEqual({ filled: "█████", empty: "░░░░░" })
+    expect(renderProgressBarParts(100, 10)).toEqual({ filled: "██████████", empty: "" })
   })
 
   it("computes full-width progress bar size leaving exact space for the percentage and task count label", () => {
@@ -43,6 +55,11 @@ describe("sidebar-format", () => {
     const vm = buildSidebarViewModel(plan, containerWidth)
     expect(vm.headerTitle).toBe("PBI #67913")
     expect(vm.progressLabel).toBe("50% (3/6)")
+    expect(vm.percentageText).toBe("50%")
+    expect(vm.stepsCountText).toBe("(3/6)")
+    expect(vm.progressBarFilled + vm.progressBarEmpty).toBe(vm.progressBar)
+    expect(vm.progressBarFilled.length).toBeGreaterThan(0)
+    expect(vm.progressBarEmpty.length).toBeGreaterThan(0)
     expect(vm.progressBar.length + 1 + vm.progressLabel.length).toBe(containerWidth)
     expect("activeBanner" in vm).toBe(false)
     expect("nextBanner" in vm).toBe(false)
@@ -66,6 +83,41 @@ describe("sidebar-format", () => {
     expect(vm.tasks[2]?.icon).toBe("")
     expect(vm.tasks[2]?.header).toBe("Task 3: Future (0/1)")
     expect(vm.tasks[2]?.steps.map((s) => s.line)).toEqual(["[ ] Step 1: Deploy"])
+  })
+})
+
+describe("TUI color helpers (Quota theme pattern)", () => {
+  const mockThemeContext = {
+    theme: {
+      text: {
+        base: "#ffffff",
+        muted: "#666666",
+        feedback: {
+          success: {
+            base: "#7ee787",
+          },
+        },
+      },
+    },
+  } as any
+
+  it("colors percentage muted at 0% and success green when > 0%", () => {
+    expect(percentageColor(mockThemeContext, 0)).toBe("#666666")
+    expect(percentageColor(mockThemeContext, 8)).toBe("#7ee787")
+    expect(percentageColor(mockThemeContext, 100)).toBe("#7ee787")
+  })
+
+  it("colors completed tasks in success green, active in base, and pending in muted", () => {
+    expect(taskColor(mockThemeContext, "completed")).toBe("#7ee787")
+    expect(taskColor(mockThemeContext, "active")).toBe("#ffffff")
+    expect(taskColor(mockThemeContext, "pending")).toBe("#666666")
+  })
+
+  it("colors completed steps in success green, active in base, and next/pending in muted", () => {
+    expect(stepColor(mockThemeContext, "completed")).toBe("#7ee787")
+    expect(stepColor(mockThemeContext, "active")).toBe("#ffffff")
+    expect(stepColor(mockThemeContext, "next")).toBe("#666666")
+    expect(stepColor(mockThemeContext, "pending")).toBe("#666666")
   })
 })
 

@@ -21,16 +21,31 @@ export interface SidebarViewModel {
   readonly fileName: string
   readonly filePath: string
   readonly progressBar: string
+  readonly progressBarFilled: string
+  readonly progressBarEmpty: string
   readonly progressLabel: string
+  readonly percentageText: string
+  readonly stepsCountText: string
   readonly percentage: number
   readonly tasks: readonly SidebarTaskViewModel[]
 }
 
-export function renderProgressBar(percentage: number, width = 14): string {
+export function renderProgressBarParts(
+  percentage: number,
+  width = 14,
+): { filled: string; empty: string } {
   const clamped = Math.max(0, Math.min(100, percentage))
   const filled = Math.round((clamped / 100) * width)
   const empty = Math.max(0, width - filled)
-  return "█".repeat(filled) + "░".repeat(empty)
+  return {
+    filled: "█".repeat(filled),
+    empty: "░".repeat(empty),
+  }
+}
+
+export function renderProgressBar(percentage: number, width = 14): string {
+  const parts = renderProgressBarParts(percentage, width)
+  return parts.filled + parts.empty
 }
 
 export function computeFullWidthBarSize(containerWidth: number, progressLabel: string): number {
@@ -61,9 +76,12 @@ function taskIcon(status: TaskStatus): "✓" | "▶" | "" {
 }
 
 export function buildSidebarViewModel(plan: ParsedPlan, containerWidth = 36): SidebarViewModel {
-  const progressLabel = `${plan.percentage}% (${plan.completedSteps}/${plan.totalSteps})`
+  const percentageText = `${plan.percentage}%`
+  const stepsCountText = `(${plan.completedSteps}/${plan.totalSteps})`
+  const progressLabel = `${percentageText} ${stepsCountText}`
   const barWidth = computeFullWidthBarSize(containerWidth, progressLabel)
-  const progressBar = renderProgressBar(plan.percentage, barWidth)
+  const barParts = renderProgressBarParts(plan.percentage, barWidth)
+  const progressBar = barParts.filled + barParts.empty
 
   const tasks: SidebarTaskViewModel[] = plan.tasks.map((task) => {
     const icon = taskIcon(task.status)
@@ -93,7 +111,11 @@ export function buildSidebarViewModel(plan: ParsedPlan, containerWidth = 36): Si
     fileName: plan.fileName,
     filePath: plan.filePath,
     progressBar,
+    progressBarFilled: barParts.filled,
+    progressBarEmpty: barParts.empty,
     progressLabel,
+    percentageText,
+    stepsCountText,
     percentage: plan.percentage,
     tasks,
   }

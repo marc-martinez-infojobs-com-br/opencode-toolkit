@@ -171,22 +171,30 @@ export async function runPlanSelectorFlow(
   }
 }
 
-function stepColor(context: TuiContext, status: StepStatus) {
+export function percentageColor(context: TuiContext, percentage: number) {
+  return percentage > 0
+    ? context.theme.text.feedback.success.base
+    : context.theme.text.muted
+}
+
+export function stepColor(context: TuiContext, status: StepStatus) {
   switch (status) {
+    case "completed":
+      return context.theme.text.feedback.success.base
     case "active":
       return context.theme.text.base
-    case "completed":
     case "next":
     case "pending":
       return context.theme.text.muted
   }
 }
 
-function taskColor(context: TuiContext, status: TaskStatus) {
+export function taskColor(context: TuiContext, status: TaskStatus) {
   switch (status) {
+    case "completed":
+      return context.theme.text.feedback.success.base
     case "active":
       return context.theme.text.base
-    case "completed":
     case "pending":
       return context.theme.text.muted
   }
@@ -280,9 +288,29 @@ function SidebarPlanView(props: { context: TuiContext; sessionID: string }) {
             onMouseDown={() => setOpen((prev) => !prev)}
           >
             <text fg={props.context.theme.text.base}>{open() ? "▼" : "▶"}</text>
-            <text fg={props.context.theme.text.base} attributes={TextAttributes.BOLD}>
-              {open() ? "Plan" : `Plan ${model().progressLabel}`}
-            </text>
+            <Show
+              when={!open()}
+              fallback={
+                <text fg={props.context.theme.text.base} attributes={TextAttributes.BOLD}>
+                  Plan
+                </text>
+              }
+            >
+              <text wrapMode="none">
+                <span style={{ fg: props.context.theme.text.base, bold: true }}>Plan </span>
+                <span
+                  style={{
+                    fg: percentageColor(props.context, model().percentage),
+                    bold: true,
+                  }}
+                >
+                  {model().percentageText}
+                </span>
+                <span style={{ fg: props.context.theme.text.muted }}>
+                  {` ${model().stepsCountText}`}
+                </span>
+              </text>
+            </Show>
           </box>
 
           <Show when={open()}>
@@ -299,17 +327,21 @@ function SidebarPlanView(props: { context: TuiContext; sessionID: string }) {
                   justifyContent="space-between"
                   gap={1}
                 >
-                  <text
-                    fg={props.context.theme.text.muted}
-                    wrapMode="none"
-                  >
-                    {model().progressBar}
+                  <text wrapMode="none">
+                    <span style={{ fg: props.context.theme.text.feedback.success.base }}>
+                      {model().progressBarFilled}
+                    </span>
+                    <span style={{ fg: props.context.theme.text.muted }}>
+                      {model().progressBarEmpty}
+                    </span>
                   </text>
-                  <text
-                    fg={props.context.theme.text.muted}
-                    wrapMode="none"
-                  >
-                    {model().progressLabel}
+                  <text wrapMode="none">
+                    <span style={{ fg: percentageColor(props.context, model().percentage) }}>
+                      {model().percentageText}
+                    </span>
+                    <span style={{ fg: props.context.theme.text.muted }}>
+                      {` ${model().stepsCountText}`}
+                    </span>
                   </text>
                 </box>
               </box>

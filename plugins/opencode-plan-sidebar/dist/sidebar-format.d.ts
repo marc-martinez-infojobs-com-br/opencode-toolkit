@@ -18,10 +18,18 @@ export interface SidebarViewModel {
     readonly fileName: string;
     readonly filePath: string;
     readonly progressBar: string;
+    readonly progressBarFilled: string;
+    readonly progressBarEmpty: string;
     readonly progressLabel: string;
+    readonly percentageText: string;
+    readonly stepsCountText: string;
     readonly percentage: number;
     readonly tasks: readonly SidebarTaskViewModel[];
 }
+export declare function renderProgressBarParts(percentage: number, width?: number): {
+    filled: string;
+    empty: string;
+};
 export declare function renderProgressBar(percentage: number, width?: number): string;
 export declare function computeFullWidthBarSize(containerWidth: number, progressLabel: string): number;
 export declare function buildSidebarViewModel(plan: ParsedPlan, containerWidth?: number): SidebarViewModel;

@@ -1,8 +1,15 @@
-export function renderProgressBar(percentage, width = 14) {
+export function renderProgressBarParts(percentage, width = 14) {
     const clamped = Math.max(0, Math.min(100, percentage));
     const filled = Math.round((clamped / 100) * width);
     const empty = Math.max(0, width - filled);
-    return "█".repeat(filled) + "░".repeat(empty);
+    return {
+        filled: "█".repeat(filled),
+        empty: "░".repeat(empty),
+    };
+}
+export function renderProgressBar(percentage, width = 14) {
+    const parts = renderProgressBarParts(percentage, width);
+    return parts.filled + parts.empty;
 }
 export function computeFullWidthBarSize(containerWidth, progressLabel) {
     return Math.max(4, containerWidth - progressLabel.length - 1);
@@ -29,9 +36,12 @@ function taskIcon(status) {
     }
 }
 export function buildSidebarViewModel(plan, containerWidth = 36) {
-    const progressLabel = `${plan.percentage}% (${plan.completedSteps}/${plan.totalSteps})`;
+    const percentageText = `${plan.percentage}%`;
+    const stepsCountText = `(${plan.completedSteps}/${plan.totalSteps})`;
+    const progressLabel = `${percentageText} ${stepsCountText}`;
     const barWidth = computeFullWidthBarSize(containerWidth, progressLabel);
-    const progressBar = renderProgressBar(plan.percentage, barWidth);
+    const barParts = renderProgressBarParts(plan.percentage, barWidth);
+    const progressBar = barParts.filled + barParts.empty;
     const tasks = plan.tasks.map((task) => {
         const icon = taskIcon(task.status);
         const prefix = icon ? `${icon} ` : "";
@@ -59,7 +69,11 @@ export function buildSidebarViewModel(plan, containerWidth = 36) {
         fileName: plan.fileName,
         filePath: plan.filePath,
         progressBar,
+        progressBarFilled: barParts.filled,
+        progressBarEmpty: barParts.empty,
         progressLabel,
+        percentageText,
+        stepsCountText,
         percentage: plan.percentage,
         tasks,
     };
